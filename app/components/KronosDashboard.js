@@ -234,9 +234,7 @@ export default function KronosDashboard() {
           <div style={{ padding: "10px 24px 6px" }}>
             <div style={{ background: "#0e0e1a", border: "1px solid #1e1e3a", borderRadius: 12, padding: "16px 8px 8px 0" }}>
               <div style={{ display: "flex", gap: 16, padding: "0 0 10px 20px", fontSize: 10, color: "#475569" }}>
-                <span><span style={{ display: "inline-block", width: 12, height: 2, background: "#60a5fa", marginRight: 6, verticalAlign: "middle" }} />Close</span>
-                <span><span style={{ display: "inline-block", width: 12, height: 2, background: "#22c55e44", marginRight: 6, verticalAlign: "middle" }} />High</span>
-                <span><span style={{ display: "inline-block", width: 12, height: 2, background: "#ef444444", marginRight: 6, verticalAlign: "middle" }} />Low</span>
+                <span><span style={{ display: "inline-block", width: 12, height: 2, background: "#60a5fa", marginRight: 6, verticalAlign: "middle" }} />Price</span>
               </div>
               <ResponsiveContainer width="100%" height={280}>
                 <ComposedChart data={chartData}>
@@ -244,8 +242,6 @@ export default function KronosDashboard() {
                   <XAxis dataKey="label" tick={{ fill: "#334155", fontSize: 9 }} axisLine={{ stroke: "#1e1e3a" }} tickLine={false} interval={Math.floor(chartData.length / 6)} />
                   <YAxis domain={[yMin, yMax]} tick={{ fill: "#334155", fontSize: 9 }} axisLine={{ stroke: "#1e1e3a" }} tickLine={false} tickFormatter={(v) => v.toLocaleString()} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Line dataKey="high" stroke="#22c55e33" strokeWidth={1} dot={false} isAnimationActive={false} name="High" />
-                  <Line dataKey="low" stroke="#ef444433" strokeWidth={1} dot={false} isAnimationActive={false} name="Low" />
                   <Line dataKey="close" stroke="#60a5fa" strokeWidth={2} dot={false} isAnimationActive={false} name="Close" />
                 </ComposedChart>
               </ResponsiveContainer>
