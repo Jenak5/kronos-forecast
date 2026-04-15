@@ -97,13 +97,13 @@ export default function KronosDashboard() {
   const sessionLabel =
     etHour >= 6 && etHour < 9 ? "MAGIC HOUR ACTIVE" :
     etHour >= 10 && etHour < 11 ? "10 AM SECONDARY" :
-    etHour >= 11 && etHour < 12 ? "SNIPER ACTIVE" :
+    etHour >= 11 && etHour < 14 ? "DIRECTIONAL WINDOW" :
     etHour >= 15 && etHour < 16 ? "POWER HOUR ACTIVE" :
     etHour >= 18 || etHour < 6 ? "OVERNIGHT — NO EDGE" :
     "REGULAR SESSION";
   const sessionColor =
     etHour >= 6 && etHour < 9 ? "#22c55e" :
-    etHour >= 11 && etHour < 12 ? "#3b82f6" :
+    etHour >= 11 && etHour < 14 ? "#3b82f6" :
     etHour >= 15 && etHour < 16 ? "#f59e0b" :
     etHour >= 18 || etHour < 6 ? "#ef4444" :
     "#71717a";
@@ -264,12 +264,12 @@ export default function KronosDashboard() {
               </div>
             </div>
             <div style={{ background: "#12121e", border: "1px solid #1e1e3a", borderRadius: 10, padding: "14px 16px" }}>
-              <div style={{ fontSize: 9, color: "#3b82f6", letterSpacing: "2px", fontWeight: 600, marginBottom: 8 }}>◎ SNIPER 11 AM-12 PM ET</div>
+              <div style={{ fontSize: 9, color: "#3b82f6", letterSpacing: "2px", fontWeight: 600, marginBottom: 8 }}>◎ DIRECTIONAL 11 AM-2 PM ET</div>
               <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.7 }}>
                 ELITE FVG directional. Check <span style={{ color: "#c4b5fd", fontWeight: 600 }}>1h vol</span> first.<br />
-                &lt;1.2 → 65.9% WR (full size)<br />
-                &lt;1.5 → 59.8% WR (normal)<br />
-                &gt;1.5 → reduced accuracy
+                11-12 → 65.9% WR (sniper prime)<br />
+                12-1 → 57.8% WR (continuation)<br />
+                1-2 → 62.0% WR at vol &lt;1.5
               </div>
             </div>
             <div style={{ background: "#12121e", border: "1px solid #1e1e3a", borderRadius: 10, padding: "14px 16px", gridColumn: "1 / -1" }}>

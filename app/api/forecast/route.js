@@ -59,18 +59,18 @@ function getContext(volRatio, timeframe, instrument) {
 
   if (timeframe === '1h') {
     if (volRatio < 1.2) return {
-      label: 'SNIPER WINDOW (11 AM-12 PM ET)',
-      text: `Low vol — Sniper ELITE zones at 65.9% WR. Full size if ELITE (${zone}) aligns.`,
-      color: '#22c55e', pct: '65.9%'
+      label: 'DIRECTIONAL WINDOW (11 AM-2 PM ET)',
+      text: `Low vol — ELITE zones: 65.9% WR at 11-12, 57.8% at 12-1, 62.0% at 1-2 PM. Full size if ELITE (${zone}) aligns.`,
+      color: '#22c55e', pct: '62-66%'
     };
     if (volRatio < 1.5) return {
-      label: 'SNIPER WINDOW (11 AM-12 PM ET)',
-      text: `Normal vol — Sniper at 59.8% WR. Full size ELITE, half size GOOD.`,
-      color: '#f59e0b', pct: '59.8%'
+      label: 'DIRECTIONAL WINDOW (11 AM-2 PM ET)',
+      text: `Normal vol — ELITE zones: 59.8% WR at 11-12, 55.8% at 12-1, 55.6% at 1-2 PM. Full size ELITE, half size GOOD.`,
+      color: '#f59e0b', pct: '56-60%'
     };
     return {
-      label: 'SNIPER WINDOW (11 AM-12 PM ET)',
-      text: `Elevated vol — Sniper accuracy drops. Half size only, ELITE zones required.`,
+      label: 'DIRECTIONAL WINDOW (11 AM-2 PM ET)',
+      text: `Elevated vol — Directional accuracy drops across all hours. Half size only, ELITE zones required.`,
       color: '#ef4444', pct: '—'
     };
   }
