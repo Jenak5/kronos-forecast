@@ -1,13 +1,19 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
-
-const API_BASE = "https://jenak5-kronos-forecast.hf.space";
+import {
+  ComposedChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 export default function KronosDashboard() {
   const [instrument, setInstrument] = useState("NQ");
-  const [timeframe, setTimeframe] = useState("1h");
+  const [timeframe, setTimeframe] = useState("4h");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -16,165 +22,263 @@ export default function KronosDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/forecast?instrument=${instrument}&timeframe=${timeframe}`);
-      if (!res.ok) throw new Error(`API ${res.status}`);
+      const res = await fetch(`/api/forecast?instrument=${instrument}&timeframe=${timeframe}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `API ${res.status}`);
+      }
       setData(await res.json());
-    } catch (e) { setError(e.message); } finally { setLoading(false); }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }, [instrument, timeframe]);
 
-  useEffect(() => { fetchForecast(); }, [fetchForecast]);
+  useEffect(() => {
+    fetchForecast();
+  }, [fetchForecast]);
 
-  const fmt = (ts) => { const d = new Date(ts); return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`; };
-
-  const chartData = data ? [
-    ...data.historical.map(c => ({ label: fmt(c.timestamp), close: c.close, type: "hist" })),
-    ...data.forecast_mean.map((c, i) => ({ label: "→ "+fmt(c.timestamp), fcMean: c.close, fcUpper: data.forecast_upper[i].close, fcLower: data.forecast_lower[i].close, type: "fc" })),
-  ] : [];
-
-  if (chartData.length > 0 && data) {
-    const b = data.historical.length - 1;
-    chartData[b].fcMean = chartData[b].close;
-    chartData[b].fcUpper = chartData[b].close;
-    chartData[b].fcLower = chartData[b].close;
-  }
-
-  const allP = chartData.flatMap(d => [d.close, d.fcMean, d.fcUpper, d.fcLower].filter(Boolean));
-  const yMin = allP.length ? Math.floor(Math.min(...allP) - 30) : 0;
-  const yMax = allP.length ? Math.ceil(Math.max(...allP) + 30) : 100;
-
-  const dirColor = data?.direction === "BULLISH" ? "#22c55e" : data?.direction === "BEARISH" ? "#ef4444" : "#f59e0b";
-  const confLabel = data?.confidence > 70 ? "High" : data?.confidence > 40 ? "Moderate" : "Low";
-  const volColor = data?.volatility_ratio < 0.8 ? "#22c55e" : data?.volatility_ratio < 1.2 ? "#a1a1aa" : data?.volatility_ratio < 1.5 ? "#f59e0b" : "#ef4444";
-  const volLabel = data?.volatility_ratio < 0.6 ? "Compressed" : data?.volatility_ratio < 0.8 ? "Low" : data?.volatility_ratio < 1.2 ? "Normal" : data?.volatility_ratio < 1.5 ? "Elevated" : "Very High";
-  const lastClose = data?.historical?.[data.historical.length-1]?.close;
-  const fcFinal = data?.forecast_mean?.[data.forecast_mean.length-1]?.close;
-  const pctMove = lastClose && fcFinal ? (((fcFinal-lastClose)/lastClose)*100).toFixed(2) : null;
-
-  const magicCtx = () => {
-    if (!data || timeframe !== "4h") return null;
-    const vr = data.volatility_ratio;
-    if (vr < 0.6) return { text: "Compressed vol — Magic Hour reversion 94.6% reliable. 5.4% fail rate. Full size fade-to-midpoint.", color: "#22c55e", pct: "94.6%" };
-    if (vr < 0.8) return { text: "Low vol — Magic Hour reversion 93.6% reliable. 6.4% fail rate. Strong fade conditions.", color: "#22c55e", pct: "93.6%" };
-    if (vr < 1.2) return { text: "Normal vol — Magic Hour reversion 90.3% reliable. Standard conditions.", color: "#a1a1aa", pct: "90.3%" };
-    return { text: "Elevated vol — Magic Hour reversion drops to 84.5%. 15.5% fail rate. Reduce size or skip.", color: "#ef4444", pct: "84.5%" };
+  const fmt = (ts) => {
+    const d = new Date(ts);
+    const h = d.getHours();
+    const m = String(d.getMinutes()).padStart(2, "0");
+    return `${d.getMonth() + 1}/${d.getDate()} ${h}:${m}`;
   };
 
-  const sniperCtx = () => {
-    if (!data || timeframe !== "1h") return null;
-    const vr = data.volatility_ratio;
-    const z = instrument === "NQ" ? "≥18pt" : "≥5pt";
-    if (vr < 1.2) return { text: `Low vol — Sniper ELITE zones at 65.9% WR. Full size if ELITE (${z}) aligns.`, color: "#22c55e", pct: "65.9%" };
-    if (vr < 1.5) return { text: "Normal vol — Sniper at 59.8% WR. Full size ELITE, half size GOOD.", color: "#f59e0b", pct: "59.8%" };
-    return { text: "Elevated vol — Sniper accuracy drops. Half size only, ELITE zones required.", color: "#ef4444", pct: "—" };
-  };
+  const chartData = data
+    ? data.historical.map((c) => ({
+        label: fmt(c.timestamp),
+        close: c.close,
+        high: c.high,
+        low: c.low,
+      }))
+    : [];
 
-  const mc = magicCtx();
-  const sc = sniperCtx();
-  const ctx = mc || sc;
+  const allPrices = chartData.flatMap((d) => [d.close, d.high, d.low]);
+  const yMin = allPrices.length ? Math.floor(Math.min(...allPrices) - 20) : 0;
+  const yMax = allPrices.length ? Math.ceil(Math.max(...allPrices) + 20) : 100;
+
+  const vr = data?.volatility_ratio || 1;
+  const volColor =
+    vr < 0.6 ? "#22c55e" : vr < 0.8 ? "#4ade80" : vr < 1.2 ? "#a1a1aa" : vr < 1.5 ? "#f59e0b" : "#ef4444";
+  const volLabel =
+    vr < 0.6 ? "COMPRESSED" : vr < 0.8 ? "LOW" : vr < 1.2 ? "NORMAL" : vr < 1.5 ? "ELEVATED" : "VERY HIGH";
+
+  const dirColor =
+    data?.direction === "BULLISH" ? "#22c55e" : data?.direction === "BEARISH" ? "#ef4444" : "#71717a";
+
+  const ctx = data?.context;
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
-    return (<div style={{ background: "#18181b", border: "1px solid #27272a", borderRadius: 6, padding: "8px 12px", fontSize: 11, fontFamily: "monospace", color: "#e4e4e7" }}>
-      <div style={{ color: "#71717a", marginBottom: 4 }}>{label}</div>
-      {payload.filter(p => p.value != null).map((p, i) => (<div key={i} style={{ color: p.color || "#e4e4e7" }}>{p.name}: {p.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>))}
-    </div>);
+    return (
+      <div style={{ background: "#1a1a2e", border: "1px solid #2a2a4a", borderRadius: 8, padding: "10px 14px", fontSize: 12, fontFamily: "'JetBrains Mono', monospace", color: "#e2e8f0" }}>
+        <div style={{ color: "#64748b", marginBottom: 6, fontSize: 10 }}>{label}</div>
+        {payload.map((p, i) => (
+          <div key={i} style={{ color: p.color, display: "flex", justifyContent: "space-between", gap: 16 }}>
+            <span>{p.name}</span>
+            <span style={{ fontWeight: 600 }}>{p.value?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+        ))}
+      </div>
+    );
   };
 
-  const tfLabels = { "5m": "Entry timing", "15m": "Structure", "1h": "Sniper vol", "4h": "Magic Hr vol" };
+  const tfMeta = {
+    "5m": { label: "5m", desc: "Entry timing", icon: "⚡" },
+    "15m": { label: "15m", desc: "Structure", icon: "◫" },
+    "1h": { label: "1h", desc: "Sniper vol", icon: "◎" },
+    "4h": { label: "4h", desc: "Magic Hr", icon: "◈" },
+  };
+
+  const now = new Date();
+  const etHour = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" })).getHours();
+  const sessionLabel =
+    etHour >= 6 && etHour < 9 ? "MAGIC HOUR ACTIVE" :
+    etHour >= 9 && etHour < 10 ? "10 AM SECONDARY" :
+    etHour >= 11 && etHour < 12 ? "SNIPER ACTIVE" :
+    etHour >= 18 || etHour < 6 ? "OVERNIGHT — NO EDGE" :
+    "REGULAR SESSION";
+  const sessionColor =
+    etHour >= 6 && etHour < 9 ? "#22c55e" :
+    etHour >= 11 && etHour < 12 ? "#3b82f6" :
+    etHour >= 18 || etHour < 6 ? "#ef4444" :
+    "#71717a";
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0a0f", color: "#e4e4e7", fontFamily: "'SF Mono','Fira Code',monospace" }}>
-      <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #1e1e2a" }}>
+    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #0a0a12 0%, #0d0d1a 100%)", color: "#e2e8f0", fontFamily: "'JetBrains Mono', 'SF Mono', 'Fira Code', monospace" }}>
+      <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+      {/* Header */}
+      <div style={{ padding: "20px 24px 14px", borderBottom: "1px solid #1a1a2e" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 20, fontWeight: 700, color: "#fafafa" }}>KRONOS</span>
-              <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 3, background: "#1e1e2a", color: "#71717a", letterSpacing: "1.5px", fontWeight: 600 }}>NQ+ES v4</span>
+              <span style={{ fontSize: 22, fontWeight: 700, color: "#f8fafc", letterSpacing: "-0.5px" }}>KRONOS</span>
+              <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 4, background: "linear-gradient(135deg, #1e1e3a, #2a1a3e)", color: "#a78bfa", letterSpacing: "2px", fontWeight: 600, border: "1px solid #2e2e4a" }}>VOL FILTER</span>
             </div>
-            <div style={{ fontSize: 10, color: "#52525b", marginTop: 4 }}>{data ? `Updated ${new Date(data.generated_at).toLocaleString()}` : "Loading…"}</div>
+            <div style={{ fontSize: 10, color: "#475569", marginTop: 4 }}>
+              {data ? `${data.cached ? "Cached • " : ""}${new Date(data.generated_at).toLocaleString()}` : "Loading…"}
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            {["NQ","ES"].map(inst => (<button key={inst} onClick={() => setInstrument(inst)} style={{ padding: "5px 12px", fontSize: 12, fontWeight: 600, fontFamily: "inherit", border: "1px solid", borderColor: instrument===inst?"#3b82f6":"#27272a", borderRadius: 4, background: instrument===inst?"#1e3a5f":"#18181b", color: instrument===inst?"#60a5fa":"#71717a", cursor: "pointer" }}>{inst}</button>))}
-            <div style={{ width: 1, height: 18, background: "#27272a", margin: "0 2px" }} />
-            {["5m","15m","1h","4h"].map(tf => (<button key={tf} onClick={() => setTimeframe(tf)} style={{ padding: "5px 10px", fontSize: 11, fontWeight: 600, fontFamily: "inherit", border: "1px solid", borderColor: timeframe===tf?"#8b5cf6":"#27272a", borderRadius: 4, background: timeframe===tf?"#2e1065":"#18181b", color: timeframe===tf?"#a78bfa":"#71717a", cursor: "pointer" }}>
-              <div>{tf}</div>
-              <div style={{ fontSize: 8, color: timeframe===tf?"#7c3aed":"#3f3f46", marginTop: 1 }}>{tfLabels[tf]}</div>
-            </button>))}
-            <button onClick={fetchForecast} disabled={loading} style={{ padding: "5px 12px", fontSize: 11, fontWeight: 600, fontFamily: "inherit", border: "1px solid #27272a", borderRadius: 4, background: "#18181b", color: loading?"#52525b":"#fafafa", cursor: loading?"wait":"pointer", marginLeft: 2 }}>{loading ? "⏳" : "↻"}</button>
+
+          {/* Session indicator */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: sessionColor, boxShadow: `0 0 8px ${sessionColor}` }} />
+            <span style={{ fontSize: 10, color: sessionColor, fontWeight: 600, letterSpacing: "1px" }}>{sessionLabel}</span>
           </div>
+        </div>
+
+        {/* Controls */}
+        <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 14 }}>
+          {["NQ", "ES"].map((inst) => (
+            <button key={inst} onClick={() => setInstrument(inst)} style={{
+              padding: "6px 14px", fontSize: 12, fontWeight: 600, fontFamily: "inherit",
+              border: "1px solid", borderColor: instrument === inst ? "#3b82f6" : "#1e1e3a",
+              borderRadius: 6, background: instrument === inst ? "linear-gradient(135deg, #1e3a5f, #1a2e4a)" : "#12121e",
+              color: instrument === inst ? "#60a5fa" : "#64748b", cursor: "pointer",
+              transition: "all 0.2s",
+            }}>{inst}</button>
+          ))}
+          <div style={{ width: 1, height: 22, background: "#1e1e3a", margin: "0 4px" }} />
+          {["5m", "15m", "1h", "4h"].map((tf) => (
+            <button key={tf} onClick={() => setTimeframe(tf)} style={{
+              padding: "6px 12px", fontSize: 11, fontWeight: 600, fontFamily: "inherit",
+              border: "1px solid", borderColor: timeframe === tf ? "#8b5cf6" : "#1e1e3a",
+              borderRadius: 6, background: timeframe === tf ? "linear-gradient(135deg, #2e1065, #1e1050)" : "#12121e",
+              color: timeframe === tf ? "#c4b5fd" : "#64748b", cursor: "pointer",
+              transition: "all 0.2s", textAlign: "center",
+            }}>
+              <div style={{ fontSize: 12 }}>{tfMeta[tf].icon} {tf}</div>
+              <div style={{ fontSize: 8, color: timeframe === tf ? "#8b5cf6" : "#334155", marginTop: 2 }}>{tfMeta[tf].desc}</div>
+            </button>
+          ))}
+          <button onClick={fetchForecast} disabled={loading} style={{
+            padding: "6px 14px", fontSize: 13, fontFamily: "inherit",
+            border: "1px solid #1e1e3a", borderRadius: 6, background: "#12121e",
+            color: loading ? "#334155" : "#e2e8f0", cursor: loading ? "wait" : "pointer",
+            marginLeft: 4, transition: "all 0.2s",
+          }}>{loading ? "⏳" : "↻"}</button>
         </div>
       </div>
 
-      {error && (<div style={{ margin: "16px 24px", padding: "12px 16px", background: "#1c1917", border: "1px solid #422006", borderRadius: 6, fontSize: 12, color: "#d97706" }}>{error.includes("Failed to fetch") ? "⚠ API sleeping — wait ~2 min and refresh." : `⚠ ${error}`}</div>)}
-
-      {data && (<>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, padding: "14px 24px 6px" }}>
-          <div style={{ background: "#12121a", border: "1px solid #1e1e2a", borderRadius: 6, padding: "12px 14px" }}>
-            <div style={{ fontSize: 9, color: "#52525b", letterSpacing: "1.5px", fontWeight: 600, marginBottom: 6 }}>DIRECTION</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: dirColor }}>{data.direction==="BULLISH"?"▲":data.direction==="BEARISH"?"▼":"◆"} {data.direction}</div>
-          </div>
-          <div style={{ background: "#12121a", border: "1px solid #1e1e2a", borderRadius: 6, padding: "12px 14px" }}>
-            <div style={{ fontSize: 9, color: "#52525b", letterSpacing: "1.5px", fontWeight: 600, marginBottom: 6 }}>CONFIDENCE</div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}><span style={{ fontSize: 18, fontWeight: 700, color: data.confidence>70?"#22c55e":data.confidence>40?"#f59e0b":"#71717a" }}>{Math.round(data.confidence)}%</span><span style={{ fontSize: 10, color: "#52525b" }}>{confLabel}</span></div>
-            <div style={{ height: 3, background: "#27272a", borderRadius: 2, marginTop: 6 }}><div style={{ width: `${Math.min(data.confidence,100)}%`, height: "100%", background: data.confidence>70?"#22c55e":data.confidence>40?"#f59e0b":"#71717a", borderRadius: 2 }} /></div>
-          </div>
-          <div style={{ background: "#12121a", border: "1px solid #1e1e2a", borderRadius: 6, padding: "12px 14px" }}>
-            <div style={{ fontSize: 9, color: "#52525b", letterSpacing: "1.5px", fontWeight: 600, marginBottom: 6 }}>VOL RATIO</div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}><span style={{ fontSize: 18, fontWeight: 700, color: volColor }}>{data.volatility_ratio.toFixed(1)}×</span><span style={{ fontSize: 10, color: volColor }}>{volLabel}</span></div>
-          </div>
-          <div style={{ background: "#12121a", border: "1px solid #1e1e2a", borderRadius: 6, padding: "12px 14px" }}>
-            <div style={{ fontSize: 9, color: "#52525b", letterSpacing: "1.5px", fontWeight: 600, marginBottom: 6 }}>PREDICTED MOVE</div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}><span style={{ fontSize: 18, fontWeight: 700, color: pctMove>0?"#22c55e":pctMove<0?"#ef4444":"#71717a" }}>{pctMove>0?"+":""}{pctMove}%</span></div>
-            <div style={{ fontSize: 10, color: "#52525b", marginTop: 2 }}>{lastClose?.toLocaleString()} → {fcFinal?.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
-          </div>
+      {/* Error */}
+      {error && (
+        <div style={{ margin: "16px 24px", padding: "14px 18px", background: "#1a1208", border: "1px solid #422006", borderRadius: 8, fontSize: 12, color: "#fbbf24" }}>
+          ⚠ {error}
         </div>
+      )}
 
-        {ctx && (<div style={{ padding: "6px 24px" }}>
-          <div style={{ background: "#12121a", border: `1px solid ${ctx.color}33`, borderRadius: 6, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: ctx.color, minWidth: 70, textAlign: "center" }}>{ctx.pct}</div>
-            <div>
-              <div style={{ fontSize: 9, color: "#52525b", letterSpacing: "1.5px", fontWeight: 600, marginBottom: 4 }}>{mc ? "MAGIC HOUR REVERSION (6-8 AM ET)" : "SNIPER WINDOW (11 AM-12 PM ET)"}</div>
-              <div style={{ fontSize: 12, color: "#a1a1aa", lineHeight: 1.5 }}>{ctx.text}</div>
+      {data && (
+        <>
+          {/* Primary Signal: Vol Ratio */}
+          <div style={{ padding: "16px 24px 8px" }}>
+            <div style={{
+              background: "linear-gradient(135deg, #12121e, #16162a)",
+              border: `1px solid ${volColor}22`,
+              borderRadius: 12, padding: "20px 24px",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              boxShadow: `0 0 30px ${volColor}08`,
+            }}>
+              <div>
+                <div style={{ fontSize: 9, color: "#475569", letterSpacing: "2px", fontWeight: 600, marginBottom: 8 }}>VOLATILITY RATIO</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                  <span style={{ fontSize: 42, fontWeight: 700, color: volColor, lineHeight: 1 }}>{vr.toFixed(2)}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: volColor, letterSpacing: "1px" }}>{volLabel}</span>
+                </div>
+                <div style={{ marginTop: 10, height: 4, background: "#1e1e3a", borderRadius: 4, width: 200, overflow: "hidden" }}>
+                  <div style={{
+                    width: `${Math.min(vr / 2 * 100, 100)}%`,
+                    height: "100%", background: `linear-gradient(90deg, #22c55e, ${volColor})`,
+                    borderRadius: 4, transition: "width 0.5s",
+                  }} />
+                </div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 9, color: "#475569", letterSpacing: "2px", fontWeight: 600, marginBottom: 8 }}>DIRECTION</div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: dirColor }}>
+                  {data.direction === "BULLISH" ? "▲" : data.direction === "BEARISH" ? "▼" : "◆"} {data.direction}
+                </div>
+                <div style={{ fontSize: 11, color: "#475569", marginTop: 4 }}>
+                  {instrument} @ {data.last_close?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </div>
+              </div>
             </div>
           </div>
-        </div>)}
 
-        <div style={{ padding: "8px 24px 4px" }}>
-          <div style={{ background: "#0d0d14", border: "1px solid #1e1e2a", borderRadius: 8, padding: "16px 8px 8px 0" }}>
-            <div style={{ display: "flex", gap: 16, padding: "0 0 8px 16px", fontSize: 10, color: "#52525b" }}>
-              <span><span style={{ display: "inline-block", width: 12, height: 2, background: "#60a5fa", marginRight: 4, verticalAlign: "middle" }} />Historical</span>
-              <span><span style={{ display: "inline-block", width: 12, height: 2, background: "#22c55e", marginRight: 4, verticalAlign: "middle" }} />Forecast</span>
-              <span><span style={{ display: "inline-block", width: 12, height: 6, background: "rgba(34,197,94,0.15)", marginRight: 4, verticalAlign: "middle", borderRadius: 1 }} />Confidence band</span>
+          {/* Trading Context Card */}
+          {ctx && (
+            <div style={{ padding: "6px 24px" }}>
+              <div style={{
+                background: "linear-gradient(135deg, #12121e, #16162a)",
+                border: `1px solid ${ctx.color}33`,
+                borderRadius: 12, padding: "16px 20px",
+                display: "flex", alignItems: "center", gap: 16,
+              }}>
+                <div style={{
+                  fontSize: 28, fontWeight: 700, color: ctx.color,
+                  minWidth: 75, textAlign: "center", lineHeight: 1,
+                }}>{ctx.pct}</div>
+                <div style={{ borderLeft: `2px solid ${ctx.color}33`, paddingLeft: 16 }}>
+                  <div style={{ fontSize: 9, color: "#64748b", letterSpacing: "2px", fontWeight: 600, marginBottom: 5 }}>{ctx.label}</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8", lineHeight: 1.6 }}>{ctx.text}</div>
+                </div>
+              </div>
             </div>
-            <ResponsiveContainer width="100%" height={320}>
-              <ComposedChart data={chartData}>
-                <CartesianGrid stroke="#1a1a24" strokeDasharray="3 3" />
-                <XAxis dataKey="label" tick={{ fill: "#3f3f46", fontSize: 9 }} axisLine={{ stroke: "#27272a" }} tickLine={false} interval={Math.floor(chartData.length/8)} />
-                <YAxis domain={[yMin,yMax]} tick={{ fill: "#3f3f46", fontSize: 9 }} axisLine={{ stroke: "#27272a" }} tickLine={false} tickFormatter={v => v.toLocaleString()} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area dataKey="fcUpper" stroke="none" fill="rgba(34,197,94,0.1)" connectNulls isAnimationActive={false} />
-                <Area dataKey="fcLower" stroke="none" fill="#0d0d14" connectNulls isAnimationActive={false} />
-                <ReferenceLine x={chartData[data.historical.length-1]?.label} stroke="#3b82f6" strokeDasharray="4 4" strokeWidth={1} />
-                <Line dataKey="close" stroke="#60a5fa" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} name="Close" />
-                <Line dataKey="fcMean" stroke="#22c55e" strokeWidth={2} strokeDasharray="5 3" dot={false} connectNulls isAnimationActive={false} name="Forecast" />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+          )}
 
-        <div style={{ padding: "8px 24px 20px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div style={{ background: "#12121a", border: "1px solid #1e1e2a", borderRadius: 6, padding: "12px 14px" }}>
-            <div style={{ fontSize: 9, color: "#52525b", letterSpacing: "1.5px", fontWeight: 600, marginBottom: 6 }}>MAGIC HOUR (6-8 AM ET)</div>
-            <div style={{ fontSize: 11, color: "#a1a1aa", lineHeight: 1.6 }}>Check 4h vol before session. Compressed &lt;0.6 = 94.6% reversion. Low &lt;0.8 = 93.6%. Elevated &gt;1.2 = reduced reliability.</div>
+          {/* Chart */}
+          <div style={{ padding: "10px 24px 6px" }}>
+            <div style={{ background: "#0e0e1a", border: "1px solid #1e1e3a", borderRadius: 12, padding: "16px 8px 8px 0" }}>
+              <div style={{ display: "flex", gap: 16, padding: "0 0 10px 20px", fontSize: 10, color: "#475569" }}>
+                <span><span style={{ display: "inline-block", width: 12, height: 2, background: "#60a5fa", marginRight: 6, verticalAlign: "middle" }} />Close</span>
+                <span><span style={{ display: "inline-block", width: 12, height: 2, background: "#22c55e44", marginRight: 6, verticalAlign: "middle" }} />High</span>
+                <span><span style={{ display: "inline-block", width: 12, height: 2, background: "#ef444444", marginRight: 6, verticalAlign: "middle" }} />Low</span>
+              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <ComposedChart data={chartData}>
+                  <CartesianGrid stroke="#1a1a2e" strokeDasharray="3 3" />
+                  <XAxis dataKey="label" tick={{ fill: "#334155", fontSize: 9 }} axisLine={{ stroke: "#1e1e3a" }} tickLine={false} interval={Math.floor(chartData.length / 6)} />
+                  <YAxis domain={[yMin, yMax]} tick={{ fill: "#334155", fontSize: 9 }} axisLine={{ stroke: "#1e1e3a" }} tickLine={false} tickFormatter={(v) => v.toLocaleString()} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line dataKey="high" stroke="#22c55e33" strokeWidth={1} dot={false} isAnimationActive={false} name="High" />
+                  <Line dataKey="low" stroke="#ef444433" strokeWidth={1} dot={false} isAnimationActive={false} name="Low" />
+                  <Line dataKey="close" stroke="#60a5fa" strokeWidth={2} dot={false} isAnimationActive={false} name="Close" />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-          <div style={{ background: "#12121a", border: "1px solid #1e1e2a", borderRadius: 6, padding: "12px 14px" }}>
-            <div style={{ fontSize: 9, color: "#52525b", letterSpacing: "1.5px", fontWeight: 600, marginBottom: 6 }}>SNIPER (11 AM-12 PM ET)</div>
-            <div style={{ fontSize: 11, color: "#a1a1aa", lineHeight: 1.6 }}>Check 1h vol before entry. Low &lt;1.2 = 65.9% WR on ELITE zones. Normal &lt;1.5 = 59.8%. Elevated = half size only.</div>
-          </div>
-        </div>
-      </>)}
 
-      {loading && !data && (<div style={{ padding: 80, textAlign: "center", color: "#52525b", fontSize: 13 }}>Loading Kronos forecast… (first load may take ~2 min if API was sleeping)</div>)}
+          {/* Quick Reference Cards */}
+          <div style={{ padding: "8px 24px 24px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ background: "#12121e", border: "1px solid #1e1e3a", borderRadius: 10, padding: "14px 16px" }}>
+              <div style={{ fontSize: 9, color: "#22c55e", letterSpacing: "2px", fontWeight: 600, marginBottom: 8 }}>◈ MAGIC HOUR 6-8 AM ET</div>
+              <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.7 }}>
+                Fade to midpoint. Check <span style={{ color: "#c4b5fd", fontWeight: 600 }}>4h vol</span> first.<br />
+                &lt;0.6 → 94.6% rev (full size)<br />
+                &lt;0.8 → 93.6% rev (strong)<br />
+                &gt;1.2 → 84.5% rev (reduce)
+              </div>
+            </div>
+            <div style={{ background: "#12121e", border: "1px solid #1e1e3a", borderRadius: 10, padding: "14px 16px" }}>
+              <div style={{ fontSize: 9, color: "#3b82f6", letterSpacing: "2px", fontWeight: 600, marginBottom: 8 }}>◎ SNIPER 11 AM-12 PM ET</div>
+              <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.7 }}>
+                ELITE FVG directional. Check <span style={{ color: "#c4b5fd", fontWeight: 600 }}>1h vol</span> first.<br />
+                &lt;1.2 → 65.9% WR (full size)<br />
+                &lt;1.5 → 59.8% WR (normal)<br />
+                &gt;1.5 → reduced accuracy
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {loading && !data && (
+        <div style={{ padding: 80, textAlign: "center" }}>
+          <div style={{ fontSize: 13, color: "#475569" }}>Loading vol data…</div>
+        </div>
+      )}
     </div>
   );
 }
