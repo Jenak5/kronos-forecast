@@ -87,7 +87,7 @@ export default function KronosDashboard() {
 
   const tfMeta = {
     "5m": { label: "5m", desc: "Entry timing", icon: "⚡" },
-    "15m": { label: "15m", desc: "Structure", icon: "◫" },
+    "15m": { label: "15m", desc: "Power Hour", icon: "⚡" },
     "1h": { label: "1h", desc: "Sniper vol", icon: "◎" },
     "4h": { label: "4h", desc: "Magic Hr", icon: "◈" },
   };
@@ -96,13 +96,15 @@ export default function KronosDashboard() {
   const etHour = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" })).getHours();
   const sessionLabel =
     etHour >= 6 && etHour < 9 ? "MAGIC HOUR ACTIVE" :
-    etHour >= 9 && etHour < 10 ? "10 AM SECONDARY" :
+    etHour >= 10 && etHour < 11 ? "10 AM SECONDARY" :
     etHour >= 11 && etHour < 12 ? "SNIPER ACTIVE" :
+    etHour >= 15 && etHour < 16 ? "POWER HOUR ACTIVE" :
     etHour >= 18 || etHour < 6 ? "OVERNIGHT — NO EDGE" :
     "REGULAR SESSION";
   const sessionColor =
     etHour >= 6 && etHour < 9 ? "#22c55e" :
     etHour >= 11 && etHour < 12 ? "#3b82f6" :
+    etHour >= 15 && etHour < 16 ? "#f59e0b" :
     etHour >= 18 || etHour < 6 ? "#ef4444" :
     "#71717a";
 
@@ -253,7 +255,7 @@ export default function KronosDashboard() {
           {/* Quick Reference Cards */}
           <div style={{ padding: "8px 24px 24px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div style={{ background: "#12121e", border: "1px solid #1e1e3a", borderRadius: 10, padding: "14px 16px" }}>
-              <div style={{ fontSize: 9, color: "#22c55e", letterSpacing: "2px", fontWeight: 600, marginBottom: 8 }}>◈ MAGIC HOUR 6-8 AM ET</div>
+              <div style={{ fontSize: 9, color: "#22c55e", letterSpacing: "2px", fontWeight: 600, marginBottom: 8 }}>◈ MAGIC HOUR 6-9 AM ET</div>
               <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.7 }}>
                 Fade to midpoint. Check <span style={{ color: "#c4b5fd", fontWeight: 600 }}>4h vol</span> first.<br />
                 &lt;0.6 → 94.6% rev (full size)<br />
@@ -268,6 +270,12 @@ export default function KronosDashboard() {
                 &lt;1.2 → 65.9% WR (full size)<br />
                 &lt;1.5 → 59.8% WR (normal)<br />
                 &gt;1.5 → reduced accuracy
+              </div>
+            </div>
+            <div style={{ background: "#12121e", border: "1px solid #1e1e3a", borderRadius: 10, padding: "14px 16px", gridColumn: "1 / -1" }}>
+              <div style={{ fontSize: 9, color: "#f59e0b", letterSpacing: "2px", fontWeight: 600, marginBottom: 8 }}>⚡ POWER HOUR 3-4 PM ET</div>
+              <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.7 }}>
+                High volume close window. 76% reversion at normal vol. NOT a directional FVG edge (46% WR). Use for closing positions or momentum scalps. Check <span style={{ color: "#c4b5fd", fontWeight: 600 }}>15m vol</span>.
               </div>
             </div>
           </div>

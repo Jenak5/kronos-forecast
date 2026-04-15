@@ -36,22 +36,22 @@ function getContext(volRatio, timeframe, instrument) {
 
   if (timeframe === '4h') {
     if (volRatio < 0.6) return {
-      label: 'MAGIC HOUR REVERSION (6-8 AM ET)',
-      text: `Compressed vol — Magic Hour reversion 94.6% reliable. 5.4% fail rate. Full size fade-to-midpoint.`,
+      label: 'MAGIC HOUR REVERSION (6-9 AM ET)',
+      text: `Compressed vol — Magic Hour reversion 94.6% reliable. 5.4% fail rate. Full size fade-to-midpoint. Expect reversion within 1 bar.`,
       color: '#22c55e', pct: '94.6%'
     };
     if (volRatio < 0.8) return {
-      label: 'MAGIC HOUR REVERSION (6-8 AM ET)',
+      label: 'MAGIC HOUR REVERSION (6-9 AM ET)',
       text: `Low vol — Magic Hour reversion 93.6% reliable. 6.4% fail rate. Strong fade conditions.`,
       color: '#22c55e', pct: '93.6%'
     };
     if (volRatio < 1.2) return {
-      label: 'MAGIC HOUR REVERSION (6-8 AM ET)',
+      label: 'MAGIC HOUR REVERSION (6-9 AM ET)',
       text: `Normal vol — Magic Hour reversion 90.3% reliable. Standard conditions.`,
       color: '#a1a1aa', pct: '90.3%'
     };
     return {
-      label: 'MAGIC HOUR REVERSION (6-8 AM ET)',
+      label: 'MAGIC HOUR REVERSION (6-9 AM ET)',
       text: `Elevated vol — Magic Hour reversion drops to 84.5%. 15.5% fail rate. Reduce size or skip.`,
       color: '#ef4444', pct: '84.5%'
     };
@@ -72,6 +72,14 @@ function getContext(volRatio, timeframe, instrument) {
       label: 'SNIPER WINDOW (11 AM-12 PM ET)',
       text: `Elevated vol — Sniper accuracy drops. Half size only, ELITE zones required.`,
       color: '#ef4444', pct: '—'
+    };
+  }
+
+  if (timeframe === '15m') {
+    return {
+      label: 'POWER HOUR (3-4 PM ET)',
+      text: `High volume close window. 76% reversion at normal vol. NOT a directional FVG edge (46% WR). Use for closing positions or momentum scalps only.`,
+      color: '#f59e0b', pct: '76%'
     };
   }
 
