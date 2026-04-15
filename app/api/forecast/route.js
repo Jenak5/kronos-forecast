@@ -1,5 +1,7 @@
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
 import { NextResponse } from 'next/server';
+
+const yahooFinance = new YahooFinance();
 
 // Cache responses for 5 minutes
 const cache = {};
