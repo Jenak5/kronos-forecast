@@ -86,10 +86,10 @@ export default function KronosDashboard() {
   };
 
   const tfMeta = {
-    "5m": { label: "5m", desc: "Entry timing", icon: "⚡" },
+    "5m": { label: "5m", desc: "Entry timing", icon: "◦" },
     "15m": { label: "15m", desc: "Power Hour", icon: "⚡" },
-    "1h": { label: "1h", desc: "Sniper vol", icon: "◎" },
-    "4h": { label: "4h", desc: "Magic Hr", icon: "◈" },
+    "1h": { label: "1h", desc: "Directional vol", icon: "◎" },
+    "4h": { label: "4h", desc: "Magic Hour", icon: "◈" },
   };
 
   const now = new Date();
