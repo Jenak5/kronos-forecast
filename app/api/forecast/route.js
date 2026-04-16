@@ -37,23 +37,23 @@ function getContext(volRatio, timeframe, instrument) {
   if (timeframe === '4h') {
     if (volRatio < 0.6) return {
       label: 'MAGIC HOUR REVERSION (6-9 AM ET)',
-      text: `Compressed vol — Magic Hour reversion 94.6% reliable. 5.4% fail rate. Full size fade-to-midpoint. Expect reversion within 1 bar.`,
-      color: '#22c55e', pct: '94.6%'
+      text: `Compressed vol — All 3 hours: 90-93% reversion. 7 AM Golden Hour is prime (92.8%). Full size all three.`,
+      color: '#22c55e', pct: '92.8%'
     };
     if (volRatio < 0.8) return {
       label: 'MAGIC HOUR REVERSION (6-9 AM ET)',
-      text: `Low vol — Magic Hour reversion 93.6% reliable. 6.4% fail rate. Strong fade conditions.`,
-      color: '#22c55e', pct: '93.6%'
+      text: `Low vol — 6 AM: 92.5% | 7 AM Golden: 92.2% | 8 AM: 91.5%. Full size all three hours.`,
+      color: '#22c55e', pct: '92.4%'
     };
     if (volRatio < 1.2) return {
       label: 'MAGIC HOUR REVERSION (6-9 AM ET)',
-      text: `Normal vol — Magic Hour reversion 90.3% reliable. Standard conditions.`,
-      color: '#a1a1aa', pct: '90.3%'
+      text: `Normal vol — 6 AM: 87-90% | 7 AM Golden: 90-96% (best at 1.0-1.2!) | 8 AM: 88-90%. Full size, favor 7 AM.`,
+      color: '#a1a1aa', pct: '92.0%'
     };
     return {
       label: 'MAGIC HOUR REVERSION (6-9 AM ET)',
-      text: `Elevated vol — Magic Hour reversion drops to 84.5%. 15.5% fail rate. Reduce size or skip.`,
-      color: '#ef4444', pct: '84.5%'
+      text: `Elevated vol — 6 AM: 90.2% (still good) | 7 AM Golden: 91.5% (still good) | 8 AM: 83% (REDUCE/SKIP). 8 AM is vol-sensitive.`,
+      color: '#f59e0b', pct: '6-7AM: 90%+'
     };
   }
 

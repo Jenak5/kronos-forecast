@@ -253,10 +253,10 @@ export default function KronosDashboard() {
             <div style={{ background: "#12121e", border: "1px solid #1e1e3a", borderRadius: 10, padding: "14px 16px" }}>
               <div style={{ fontSize: 9, color: "#22c55e", letterSpacing: "2px", fontWeight: 600, marginBottom: 8 }}>◈ MAGIC HOUR 6-9 AM ET</div>
               <div style={{ fontSize: 11, color: "#94a3b8", lineHeight: 1.7 }}>
-                Fade to midpoint. Check <span style={{ color: "#c4b5fd", fontWeight: 600 }}>4h vol</span> first.<br />
-                &lt;0.6 → 94.6% rev (full size)<br />
-                &lt;0.8 → 93.6% rev (strong)<br />
-                &gt;1.2 → 84.5% rev (reduce)
+                <span style={{ color: "#c4b5fd", fontWeight: 600 }}>7 AM Golden</span> = A+ (92.8% all vols)<br />
+                <span style={{ color: "#c4b5fd", fontWeight: 600 }}>6 AM Pre-Mkt</span> = B+ (~92% all vols)<br />
+                <span style={{ color: "#fbbf24", fontWeight: 600 }}>8 AM Cont.</span> = vol-sensitive<br />
+                (Full size &lt;1.2 / skip &gt;1.2)
               </div>
             </div>
             <div style={{ background: "#12121e", border: "1px solid #1e1e3a", borderRadius: 10, padding: "14px 16px" }}>
